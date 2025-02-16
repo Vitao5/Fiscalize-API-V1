@@ -26,9 +26,11 @@ const sequelize = new Sequelize(
 // Inicializa o modelo User com a instância do Sequelize
 const UserModel = User(sequelize);
 const BankModel = Bank(sequelize);
+const TypePaymentsModel = TypePayments(sequelize);
 
 module.exports = {
     sequelize,
     User: UserModel,
-    Bank: BankModel
+    Bank: BankModel,
+    TypePayments: TypePaymentsModel
 };
