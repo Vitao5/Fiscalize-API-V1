@@ -2,7 +2,7 @@ require("dotenv").config();
 const { Sequelize } = require('sequelize');
 const User = require('../models/usersModel');
 const Bank = require('../models/bankModel');                
-
+const TypePayments = require('../models/typePaymentsModel');
 
 const sequelize = new Sequelize(
     process.env.MYSQLDATABASE,

@@ -20,11 +20,22 @@ module.exports = (sequelize) => {
         password: {
             type: DataTypes.STRING,
             allowNull: false
+        },
+        lastLogin: {
+            type: DataTypes.DATE,
+            allowNull: true
+        },
+        admin: {
+            type: DataTypes.BOOLEAN,
+            allowNull: true
+        },
+        inativeUser: {
+            type: DataTypes.BOOLEAN,
+            allowNull: true
         }
     }, {
         tableName: 'users',
         timestamps: false
     });
-
     return User;
 };

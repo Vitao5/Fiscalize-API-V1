@@ -1,7 +1,10 @@
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const { User } = require('../db/config/database'); 
-const {generateId, isNullorEmpty} = require('../comum/comumFunctions');
+const {generateId, isNullorEmpty, getUserMoment, isRootSystem} = require('../comum/comumFunctions');
+
+const process = require('process');
+require("dotenv").config()
 
 // Registrar usuário
 const register = async (req, res) => {
@@ -55,9 +58,19 @@ const deleteUser = async (req, res) => {
             return res.status(404).json({ message: "Usuário não encontrado!" });
         }
 
-        // Deleta o usuário
-        await User.destroy({ where: { id } });
-        res.status(200).json({ message: "Usuário deletado com sucesso!" });
+        if(getUserMoment(req) != process.env.ROOT_SYSTEM){
+            return res.status(400).json({ message: "Você não possui permissão para deletar usuários" });
+        }else{
+            // Deleta o usuário
+            if(!!isRootSystem(req)){
+                return res.status(400).json({message: 'Este usuário não pode ser deletado'});
+            }else{
+                await User.destroy({ where: { id } });
+                res.status(200).json({ message: "Usuário deletado com sucesso!" });
+            }
+            
+        }
+
     } catch (err) {
         console.error("Erro ao deletar usuário:", err);
         res.status(400).json({ message: err.message });
@@ -77,10 +90,20 @@ const login = async (req, res) => {
         if (!verifyPassword || !user) {
             return res.status(400).json({ message: "Email ou senha incorretos!" });
         }
+        
+        if(user.inativeUser == true){
+            return res.status(400).json({ message: "Usuário inativado, entre em contato com seu administrador!" });
+        }else{
+            const currentDateTime = new Date();
+            const localDateTime = new Date(currentDateTime.getTime() - (currentDateTime.getTimezoneOffset() * 60000));
+    
+            await User.update({ lastLogin: localDateTime }, { where: { id: user.id} });
+            // Gera o token JWT
+            const token = jwt.sign({ id: user.id, email: user.password }, process.env.JWT_SECRET, { expiresIn: '24h' });
+           return res.status(200).json({ token, message: 'Autenticado com sucesso', userRoot: user.admin});
+        }
 
-        // Gera o token JWT
-        const token = jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '24h' });
-       return res.status(200).json({ token, message: 'Autenticado com sucesso' });
+  
     } catch (err) {
         console.error("Erro ao fazer login:", err);
         res.status(400).json({ error: "Erro ao fazer login." });
@@ -151,12 +174,71 @@ const updateUser = async (req, res) => {
     }
 };
 
+const inativerUser = async (req, res) => {
+    try {
+        const {idUserToInative, inativeUser } = req.body;
+        const userRoot = getUserMoment(req);
+        const userIsRoot = await User.findByPk(userRoot);
+
+        if(userIsRoot.admin == false){
+            return res.status(400).json({ message: "Você não possui permissão para inativar usuários" });
+        }else{
+            // Verifica se o usuário existe
+            const user = await User.findByPk(idUserToInative);
+            if (!user) {
+                return res.status(404).json({ error: "Usuário não encontrado!" });
+            }else{
+                if(!isRootSystem(req)){
+                    if(inativeUser == true){
+                        await User.update({ inativeUser }, { where: { id: true } });
+                        res.status(200).json({ message: "Usuário inativado com sucesso!" });
+    
+                    }else{
+                        await User.update({ inativeUser }, { where: { id: false } });
+                        res.status(200).json({ message: "Usuário ativado com sucesso!" });
+                    }
+                }
+
+            }
+        }
+    } catch (err) {
+        console.error("Erro ao inativar usuário:", err);
+        res.status(400).json({ message: "Erro ao inativar usuário.", error: err });
+    }
+}
+
+const changeToAdmin = async (req, res) => {
+    try {
+        if(!!isRootSystem(req)){
+            const { idNewRootUser, root } = req.body;
+    
+            const user = await User.findByPk(idNewRootUser);
+            if (!user) {
+                return res.status(404).json({ message: "Usuário não encontrado!" });
+            }else{
+                if(!!root){
+                    await User.update({ admin: root }, { where: { id: user.id} });
+                    res.status(200).json({message: 'Usuário alterado para admin'})
+                }else{
+                    await User.update({ admin: root }, { where: { id: user.id} });
+                    res.status(200).json({message: 'Permissão de admin removida'})
+                }
+            }
+            
+        }else{
+            res.status(400).json({message: 'Você não possui acesso a essa funcionalidade!'})
+        }
+    } catch (err) {
+        console.error("Erro ao alterar usuário para administrador:", err);
+        res.status(400).json({ message: err.message });
+    }
+}
+
+
 // Exportação dos métodos
 module.exports = {
-    register,
-    deleteUser,
-    login,
-    allUsers,
-    userId,
-    updateUser
+    register,deleteUser,
+    login,allUsers,
+    userId,updateUser,
+    inativerUser, changeToAdmin
 };

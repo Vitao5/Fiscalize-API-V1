@@ -1,5 +1,5 @@
 const express = require("express");
-const { register, deleteUser, login, allUsers, userId, updateUser } = require("../controllers/usersController");  
+const { register, deleteUser, login, allUsers, userId, updateUser, changeToAdmin, inativerUser } = require("../controllers/usersController");  
 const { registerBank, deleteBank, listBanks, alterInfoBank } = require("../controllers/bankController");
 const { registerTypePayment, deleteTypePayment, listTypePayments, alterInfoTypePayment } = require("../controllers/typePaymentsController");
 
@@ -11,12 +11,14 @@ const router = express.Router();
 
 
 // Rotas usuários
+router.post('/users/login', login); 
 router.get('/users', authMiddleware, checkHeadersSent, allUsers);
 router.get('/users/:id', authMiddleware, checkHeadersSent, userId);
 router.post('/users/create', register);
 router.put('/users/update/:id', authMiddleware, checkHeadersSent, updateUser);
 router.delete('/users/delete/:id', authMiddleware, checkHeadersSent, deleteUser);
-router.post('/users/login', login); 
+router.put('/users/new-admin', authMiddleware, checkHeadersSent, changeToAdmin)
+router.put('/users/inative-user', authMiddleware, checkHeadersSent, inativerUser)
 
 // Rotas bancos
 router.post('/banks/register', authMiddleware, checkHeadersSent, registerBank);

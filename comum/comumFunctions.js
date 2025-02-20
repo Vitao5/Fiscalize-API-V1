@@ -20,8 +20,16 @@ function getUserMoment(req){
     return decoded.id;
 }
 
+function isRootSystem(req){
+    if(getUserMoment(req) == process.env.ROOT_SYSTEM){
+        return true;
+    }else{
+        return false;
+    }
+}
 module.exports = {
     generateId,
     isNullorEmpty,
-    getUserMoment
+    getUserMoment,
+    isRootSystem
 };
