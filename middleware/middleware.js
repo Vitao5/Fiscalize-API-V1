@@ -1,6 +1,8 @@
 const jwt = require('jsonwebtoken');
 const process = require('process');
 require("dotenv").config()
+const rateLimit = require('express-rate-limit');
+const slowDown = require('express-slow-down');
 
 const authMiddleware = (req, res, next) => {
   const token = req.header('Authorization')?.replace('Bearer ', '');
@@ -30,5 +32,16 @@ const checkHeadersSent = (req, res, next) => {
   next();
 };
 
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 100, // Limite de 100 requisições por IP
+  message: 'Muitas requisições do mesmo IP, por favor tente novamente mais tarde.'
+});
 
-module.exports = { authMiddleware, checkHeadersSent };
+// Middleware de Throttling
+const speedLimiter = slowDown({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  delayAfter: 100, // Começa a desacelerar após 100 requisições
+  delayMs: 500 // Adiciona 500ms de atraso por requisição adicional
+});
+module.exports = { authMiddleware, checkHeadersSent, limiter, speedLimiter };

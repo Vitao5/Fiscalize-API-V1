@@ -1,13 +1,9 @@
 const express = require("express");
 const cors = require("cors");
-
+const {limiter, speedLimiter } = require("./middleware/middleware");
 const router = require("./routes/router");
 
 require("dotenv").config();
-console.log("DB_USER:", process.env.MYSQLUSER);
-console.log("DB_PASSWORD:", process.env.MYSQLPASSWORD ? "********" : "(vazio)");
-console.log("DB_NAME:", process.env.MYSQLDATABASE);
-console.log("DB_HOST:", process.env.MYSQLHOST);
 
 const db = require("./db/models");
 
@@ -21,13 +17,9 @@ app.use(express.json());
 app.use(cors());
 app.use('/api', router);
 app.use("/users", router);
+app.use(limiter);
+app.use(speedLimiter)
  
-
-app._router.stack.forEach((r) => {
-  if (r.route && r.route.path) {
-      console.log(`Rota registrada: ${r.route.path}`);
-  }
-});
 
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
