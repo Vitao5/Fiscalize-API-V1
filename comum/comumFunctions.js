@@ -20,8 +20,8 @@ function getUserMoment(req){
     return decoded.id;
 }
 
-function isRootSystem(req){
-    if(getUserMoment(req) == process.env.ROOT_SYSTEM){
+function isRootSystem(id){
+    if(id == process.env.ROOT_SYSTEM){
         return true;
     }else{
         return false;

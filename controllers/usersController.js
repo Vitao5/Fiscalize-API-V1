@@ -85,15 +85,14 @@ const login = async (req, res) => {
         const user = await User.findOne({ where: { email } });
         const verifyPassword = await bcrypt.compare(password, user.password);
 
-        // Verifica a senha
-       
-        if (!verifyPassword || !user) {
-            return res.status(400).json({ message: "Email ou senha incorretos!" });
-        }
         
         if(user.inativeUser == true){
             return res.status(400).json({ message: "Usuário inativado, entre em contato com seu administrador!" });
         }else{
+            if (!verifyPassword || !user) {
+                return res.status(400).json({ message: "Email ou senha incorretos!" });
+            }
+            
             const currentDateTime = new Date();
             const localDateTime = new Date(currentDateTime.getTime() - (currentDateTime.getTimezoneOffset() * 60000));
     
@@ -176,7 +175,7 @@ const updateUser = async (req, res) => {
 
 const inativerUser = async (req, res) => {
     try {
-        const {idUserToInative, inativeUser } = req.body;
+        const {id, inativeUser } = req.body;
         const userRoot = getUserMoment(req);
         const userIsRoot = await User.findByPk(userRoot);
 
@@ -184,19 +183,22 @@ const inativerUser = async (req, res) => {
             return res.status(400).json({ message: "Você não possui permissão para inativar usuários" });
         }else{
             // Verifica se o usuário existe
-            const user = await User.findByPk(idUserToInative);
+            const user = await User.findByPk(id);
             if (!user) {
                 return res.status(404).json({ error: "Usuário não encontrado!" });
             }else{
-                if(!isRootSystem(req)){
+
+                if(!isRootSystem(id)){
                     if(inativeUser == true){
-                        await User.update({ inativeUser }, { where: { id: true } });
+                        await User.update({ inativeUser }, { where: { id } });
                         res.status(200).json({ message: "Usuário inativado com sucesso!" });
     
                     }else{
-                        await User.update({ inativeUser }, { where: { id: false } });
+                        await User.update({ inativeUser }, { where: { id } });
                         res.status(200).json({ message: "Usuário ativado com sucesso!" });
                     }
+                }else{
+                    res.status(200).json({ message: "O usuário root não pode ser desativado!" });  
                 }
 
             }
