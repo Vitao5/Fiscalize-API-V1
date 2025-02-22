@@ -32,6 +32,14 @@ module.exports = (sequelize) => {
         inativeUser: {
             type: DataTypes.BOOLEAN,
             allowNull: true
+        },
+        loginAttempts:{
+            type: DataTypes.INTEGER,
+            allowNull: true
+        },
+        lastLoginAttempt:{
+            type: DataTypes.DATE,
+            allowNull: true
         }
     }, {
         tableName: 'users',

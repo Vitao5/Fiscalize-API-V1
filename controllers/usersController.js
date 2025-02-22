@@ -79,27 +79,49 @@ const deleteUser = async (req, res) => {
 
 // Login do usuário
 const login = async (req, res) => {
+    const LOCK_TIME_LOGIN = 15 * 60 * 1000
+
+
     try {
         const { email, password } = req.body;
-
         const user = await User.findOne({ where: { email } });
-        const verifyPassword = await bcrypt.compare(password, user.password);
 
-        
+
+        if(!user){
+            return res.status(400).json({ message: 'Usuário inexistente. Clique em criar conta.' });
+        }
+
+        if (user.loginAttempts >= process.env.MAX_LOGIN_ATTEMPTS && new Date() - user.lastLoginAttempt < LOCK_TIME_LOGIN) {
+            return res.status(403).json({ 
+                message: 'Conta bloqueada por segurança após várias tentativas falhas de login. Tente novamente mais tarde ou efetua a troca de senha.' });
+        }
+
         if(user.inativeUser == true){
             return res.status(400).json({ message: "Usuário inativado, entre em contato com seu administrador!" });
         }else{
-            if (!verifyPassword || !user) {
-                return res.status(400).json({ message: "Email ou senha incorretos!" });
-            }
-            
-            const currentDateTime = new Date();
-            const localDateTime = new Date(currentDateTime.getTime() - (currentDateTime.getTimezoneOffset() * 60000));
-    
-            await User.update({ lastLogin: localDateTime }, { where: { id: user.id} });
-            // Gera o token JWT
-            const token = jwt.sign({ id: user.id, email: user.password }, process.env.JWT_SECRET, { expiresIn: '24h' });
-           return res.status(200).json({ token, message: 'Autenticado com sucesso', userRoot: user.admin});
+            const verifyPassword = await bcrypt.compare(password, user.password);
+            const verifyEmail = user.email != email
+            if (!verifyPassword || !!verifyEmail) {
+                await User.update({
+                    loginAttempts: user.loginAttempts + 1,
+                    lastLoginAttempt: new Date()
+                  }, { where: { id: user.id } });
+                const userLogin = await User.findOne({ where: { email } });
+                return res.status(400).json({ message: "Email ou senha incorretos!", tentativa: `Restam ${process.env.MAX_LOGIN_ATTEMPTS - userLogin.loginAttempts} tentativa(s) até ser bloqueado!` });
+            }else{
+                await User.update({
+                    loginAttempts: 0,
+                    lastLoginAttempt: null
+                  }, { where: { id: user.id } });
+
+                  const currentDateTime = new Date();
+                  const localDateTime = new Date(currentDateTime.getTime() - (currentDateTime.getTimezoneOffset() * 60000));
+          
+                  await User.update({ lastLogin: localDateTime }, { where: { id: user.id} });
+                  // Gera o token JWT
+                  const token = jwt.sign({ id: user.id, email: user.password }, process.env.JWT_SECRET, { expiresIn: '24h' });
+                 return res.status(200).json({ token, message: 'Autenticado com sucesso', userRoot: user.admin});
+                }
         }
 
   
@@ -198,7 +220,7 @@ const inativerUser = async (req, res) => {
                         res.status(200).json({ message: "Usuário ativado com sucesso!" });
                     }
                 }else{
-                    res.status(200).json({ message: "O usuário root não pode ser desativado!" });  
+                    res.status(400).json({ message: "O usuário root não pode ser desativado!" });  
                 }
 
             }
