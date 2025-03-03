@@ -40,6 +40,14 @@ module.exports = (sequelize) => {
         lastLoginAttempt:{
             type: DataTypes.DATE,
             allowNull: true
+        },
+        codePassword:{
+            type: DataTypes.STRING,
+            allowNull: true
+        },
+        phoneNumber:{
+            type: DataTypes.STRING,
+            allowNull: true
         }
     }, {
         tableName: 'users',
