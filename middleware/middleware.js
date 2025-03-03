@@ -42,6 +42,9 @@ const limiter = rateLimit({
 const speedLimiter = slowDown({
   windowMs: 15 * 60 * 1000, // 15 minutos
   delayAfter: 100, // Começa a desacelerar após 100 requisições
-  delayMs: 500 // Adiciona 500ms de atraso por requisição adicional
+  delayMs: (used, req) => {
+    const delayAfter = req.slowDown.limit;
+    return (used - delayAfter) * 500; // Atraso calculado
+  }
 });
 module.exports = { authMiddleware, checkHeadersSent, limiter, speedLimiter };
