@@ -1,8 +1,15 @@
 const express = require("express");
-const { register, deleteUser, login, allUsers, userId, updateUser, changeToAdmin, inativerUser } = require("../controllers/usersController");  
 const { registerBank, deleteBank, listBanks, alterInfoBank } = require("../controllers/bankController");
-const { registerTypePayment, deleteTypePayment, listTypePayments, alterInfoTypePayment } = require("../controllers/typePaymentsController");
+const { registerTypePayment, deleteTypePayment, listTypePayments, alterInfoTypePayment} = require("../controllers/typePaymentsController");
+const {registerExtraPurchase} = require('../controllers/extraPurchaseController')
 
+const { 
+register, deleteUser, login, 
+allUsers, userId, updateUser, 
+changeToAdmin, inativerUser, sendCodePassword,
+resetPassword
+
+} = require("../controllers/usersController");  
 
 // Import the controller functions
 const { authMiddleware, checkHeadersSent } = require("../middleware/middleware");
@@ -14,11 +21,13 @@ const router = express.Router();
 router.post('/users/login', login); 
 router.get('/users', authMiddleware, checkHeadersSent, allUsers);
 router.get('/users/:id', authMiddleware, checkHeadersSent, userId);
-router.post('/users/create', register);
+router.post('/users/register', register);
 router.put('/users/update/:id', authMiddleware, checkHeadersSent, updateUser);
 router.delete('/users/delete/:id', authMiddleware, checkHeadersSent, deleteUser);
 router.put('/users/new-admin', authMiddleware, checkHeadersSent, changeToAdmin)
 router.put('/users/inative-user', authMiddleware, checkHeadersSent, inativerUser)
+router.post('/users/send-code', checkHeadersSent, sendCodePassword)
+router.post('/users/reset-password', checkHeadersSent, resetPassword)
 
 // Rotas bancos
 router.post('/banks/register', authMiddleware, checkHeadersSent, registerBank);
@@ -27,10 +36,12 @@ router.get('/banks/list', authMiddleware, checkHeadersSent, listBanks);
 router.put('/banks/update/:id', authMiddleware, checkHeadersSent, alterInfoBank);
 
 // Rotas tipo de pagamento
-router.post('/typePayments/register', authMiddleware, checkHeadersSent, registerTypePayment);
-router.delete('/typePayments/delete', authMiddleware, checkHeadersSent, deleteTypePayment);
-router.get('/typePayments/list', authMiddleware, checkHeadersSent, listTypePayments);
-router.put('/typePayments/update', authMiddleware, checkHeadersSent, alterInfoTypePayment);
+router.post('/type-payments/register', authMiddleware, checkHeadersSent, registerTypePayment);
+router.delete('/type-payments/delete', authMiddleware, checkHeadersSent, deleteTypePayment);
+router.get('/type-payments/list', authMiddleware, checkHeadersSent, listTypePayments);
+router.put('/type-payments/update', authMiddleware, checkHeadersSent, alterInfoTypePayment);
 
+
+router.post('/extra-purchase/register', authMiddleware, checkHeadersSent, registerExtraPurchase)
 
 module.exports = router;  // export the router

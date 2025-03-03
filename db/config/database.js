@@ -3,6 +3,7 @@ const { Sequelize } = require('sequelize');
 const User = require('../models/usersModel');
 const Bank = require('../models/bankModel');                
 const TypePayments = require('../models/typePaymentsModel');
+const ExtraPurchasesUser = require('../models/extraPurchasesModel')
 
 const sequelize = new Sequelize(
     process.env.MYSQLDATABASE,
@@ -27,10 +28,12 @@ const sequelize = new Sequelize(
 const UserModel = User(sequelize);
 const BankModel = Bank(sequelize);
 const TypePaymentsModel = TypePayments(sequelize);
+const ExtraPurchases = ExtraPurchasesUser(sequelize);
 
 module.exports = {
     sequelize,
     User: UserModel,
     Bank: BankModel,
-    TypePayments: TypePaymentsModel
+    TypePayments: TypePaymentsModel,
+    ExtraPurchasesUser: ExtraPurchases
 };

@@ -1,6 +1,6 @@
+const { DataTypes } = require('sequelize');
 
-
-module.exports = (sequelize, DataTypes) => {
+module.exports = (sequelize) => {
     const extraPurchasesSchema = sequelize.define('ExtraPurchases', {
         id: {
             type: DataTypes.STRING,
@@ -43,6 +43,9 @@ module.exports = (sequelize, DataTypes) => {
             required: true,
             allowNull: false
         },
+    }, {
+        tableName: 'extraPurchase',
+        timestamps: false
     });
 
     return extraPurchasesSchema
