@@ -6,6 +6,7 @@ require("dotenv").config();
 const registerBank = async (req, res) => {
     try {
         const banksToRegister = req.body;
+        const userMoment = getUserMoment(req);         
 
         for (const element of banksToRegister) {
             const { bankName, datePayment } = element;
@@ -13,8 +14,8 @@ const registerBank = async (req, res) => {
                 return res.status(400).json({ message: "Preencha todos os campos!" });
             } else {
                 const idBank = generateId();
-                const verifyIdBank = await Bank.findByPk(idBank);
-                const userMoment = getUserMoment(req);         
+                const verifyIdBank = await Bank.findByPK(idBank);
+                
 
                 while (verifyIdBank) {
                     idBank = generateId();
@@ -28,16 +29,16 @@ const registerBank = async (req, res) => {
                     createdBy: userMoment
                 });
 
-                const listAllBanksRegisterUser = await Bank.findAll({
-                    where: { createdBy: userMoment }
-                  });
-                
-                return res.status(201).json({ message: "Banco registrado com sucesso!", listaBancos: listAllBanksRegisterUser });
+
             }
         }
-
+        const listAllBanksRegisterUser = await Bank.findAll({
+            where: { createdBy: userMoment }
+          });
+        
+        return res.status(201).json({ message: "Banco registrado com sucesso!", listaBancos: listAllBanksRegisterUser });
     } catch (err) {
-        return res.status(400).json({ message: "Erro ao registrar pagamento.", error: err.message });
+        return res.status(400).json({ message: "Erro ao registrar banco.", error: err.message });
     }
 }
 
