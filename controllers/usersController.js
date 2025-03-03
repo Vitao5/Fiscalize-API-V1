@@ -1,7 +1,7 @@
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const { User } = require('../db/config/database'); 
-const {generateId, isNullorEmpty, getUserMoment, isRootSystem} = require('../comum/comumFunctions');
+const {generateId, isNullorEmpty, getUserMoment, isRootSystem, codeFourDigits, sendMail} = require('../comum/comumFunctions');
 
 const process = require('process');
 require("dotenv").config()
@@ -10,7 +10,7 @@ require("dotenv").config()
 const register = async (req, res) => {
 
     try {
-        const { name, email, password } = req.body;
+        const { name, email, password, phoneNumber } = req.body;
 
         if(isNullorEmpty(name) || isNullorEmpty(email) || isNullorEmpty(password)){
             return res.status(400).json({ message: "Preencha todos os campos!" });
@@ -35,7 +35,8 @@ const register = async (req, res) => {
                         name: req.body.name,
                         email: req.body.email,
                         id: idUser,
-                        password: passwordHash
+                        password: passwordHash,
+                        phoneNumber: phoneNumber
                     });
 
                     res.status(201).json({ message: "Usuário registrado com sucesso!", id: idUser });
@@ -258,11 +259,49 @@ const changeToAdmin = async (req, res) => {
     }
 }
 
+const sendCodePassword = async (req, res) =>{
+    const {email} = req.body
+
+    const user = await User.findOne({where: {email}})
+    if(!user){
+        return res.status(400).json({message: 'E-mail não encontrado!'})
+    }
+    
+    const code = codeFourDigits()
+     sendMail(user.email,`Fiscalize Finanças: Seu código de segurança é ${code}, não compartilhe com ninguém. Se não foi você que solicitou, troque sua senha imediatamente.`)
+
+    await User.update({ codePassword: code }, { where: { id: user.id} });
+
+    const [local, domain] = email.split('@');
+    const emailSend=  local.slice(0, 2) + '***@' + domain.replace(/.(?=.{2}@)/g, '*');
+
+    res.status(200).json({message: `Código de segurança enviado para ${emailSend}`})
+
+}
+
+const resetPassword = async (req, res) =>{
+    const {codePassword, password} = req.body
+    const user = await User.findOne({where: {codePassword}})
+
+    if(user.codePassword != codePassword){
+        return res.status(400).json({message: 'Código informado esta inválido'})
+    }
+    const newPasswordHash = await bcrypt.hash(password, 10);
+
+    await User.update({
+        loginAttempts: 0,
+        codePassword: null,
+        password: newPasswordHash
+      }, { where: { id: user.id } });
+
+    return res.status(200).json({message: 'Senha atualizada com sucesso'})
+}
 
 // Exportação dos métodos
 module.exports = {
     register,deleteUser,
     login,allUsers,
     userId,updateUser,
-    inativerUser, changeToAdmin
+    inativerUser, changeToAdmin,
+    sendCodePassword, resetPassword
 };
