@@ -46,7 +46,7 @@ async function sendMail(email, texto) {
         service: "gmail",
         auth: {
             user: process.env.EMAIL,
-            pass: process.PASSWORD_EMAIL
+            pass: process.env.PASSWORD_EMAIL
         }
     });
     
