@@ -1,7 +1,10 @@
 const express = require("express");
 const cors = require("cors");
 const {limiter, speedLimiter } = require("./middleware/middleware");
-const router = require("./routes/router");
+const userRoutes = require('./routes/user.routes')
+const bankRouters = require('./routes/bank.routes')
+const typePayments = require('./routes/typePayments.routes')
+const extraPurchase = require('./routes/extraPurchase.routes')
 
 require("dotenv").config();
 
@@ -15,11 +18,15 @@ const PORT = process.env.PORT;
 // Middleware
 app.use(express.json());
 app.use(cors());
-app.use('/api', router);
-app.use("/users", router);
+
 app.use(limiter);
 app.use(speedLimiter)
- 
+
+app.use("/api/users", userRoutes);
+app.use('/api/banks', bankRouters)
+app.use('/api/type-payments', typePayments)
+app.use('/api/extra-purchase', extraPurchase)
+
 
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
