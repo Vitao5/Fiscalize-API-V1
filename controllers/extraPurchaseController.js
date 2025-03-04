@@ -70,8 +70,12 @@ const alterExtraPurchase = async (req, res) =>{
                     purchaseDate: purchaseDate
                 })
                 
-                const listaCompras =  await ExtraPurchasesUser.findAll({where:{ userId:userMoment }}) 
-                return res.status(200).json({message: 'Informações alteradas com sucesso', listExtraPurchase: listaCompras})
+                const list = await ExtraPurchasesUser.findAll({
+                    where: { userId: userMoment },
+                    attributes: { exclude: ['userId'] } 
+                  });
+                  
+                return res.status(200).json({message: 'Informações alteradas com sucesso', listExtraPurchase: list})
         }
     }catch(err){
         return res.status(500).json({message: 'Erro interno do servidor', error: err})
@@ -82,8 +86,11 @@ const alterExtraPurchase = async (req, res) =>{
 const listExtraPurchase = async (req, res) =>{
     try{
         const userMoment = getUserMoment(req);   
-        const listaCompras =  await ExtraPurchasesUser.findAll({where:{ userId:userMoment }}) 
-        return res.status(200).json({listExtraPurchase: listaCompras})
+        const list = await ExtraPurchasesUser.findAll({
+            where: { userId: userMoment },
+            attributes: { exclude: ['userId'] } 
+          });
+        return res.status(200).json({listExtraPurchase: list})
     }catch(err){
         return res.status(500).json({message: 'Erro interno do servidor', error: err})
     }
@@ -98,6 +105,12 @@ const deleteExtraPurchase = async (req, res)=>{
                 await ExtraPurchasesUser.destroy({
                     where: { id: deleteItem }
                 });
+
+                const list = await ExtraPurchasesUser.findAll({
+                    where: { userId: userMoment },
+                    attributes: { exclude: ['userId'] } 
+                  });
+                return res.status(200).json({listExtraPurchase: list})
             }else{
                 return res.status(400).json({message: 'Uma ou mais compras não foram encontradas'})
             }
