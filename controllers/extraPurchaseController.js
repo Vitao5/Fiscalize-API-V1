@@ -32,7 +32,6 @@ const registerExtraPurchase =  async (req, res) => {
             });
         });
 
-        
         const list = await ExtraPurchasesUser.findAll({
             where: { userId: userMoment },
             attributes: { exclude: ['userId'] },
