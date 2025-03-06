@@ -14,7 +14,7 @@ const router = express.Router();
 
 router.post('/login', login); 
 router.get('/list-users', authMiddleware, checkHeadersSent, allUsers);
-router.get('list/:id', authMiddleware, checkHeadersSent, userId);
+router.get('/:id', authMiddleware, checkHeadersSent, userId);
 router.post('/register', register);
 router.put('/update/:id', authMiddleware, checkHeadersSent, updateUser);
 router.delete('/delete/:id', authMiddleware, checkHeadersSent, deleteUser);

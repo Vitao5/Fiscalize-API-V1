@@ -82,7 +82,6 @@ const deleteUser = async (req, res) => {
 const login = async (req, res) => {
     const LOCK_TIME_LOGIN = 15 * 60 * 1000
 
-
     try {
         const { email, password } = req.body;
         const user = await User.findOne({ where: { email } });
