@@ -19,7 +19,7 @@ const registerExtraPurchase =  async (req, res) => {
             isNullorEmpty(element.monthPayment)){
                 return res.status(400).json({message: 'Campos obrigatórios não preenchidos'})
             }
-
+            //
             await ExtraPurchasesUser.create({
                 purchaseName: element.purchaseName,
                 purchaseTypePayment: element.purchaseTypePayment,
