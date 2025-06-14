@@ -16,10 +16,10 @@ const sequelize = new Sequelize(
       dialectOptions: {
     ssl: {
       require: true,
-      rejectUnauthorized: false // Para evitar erro de SSL
+      rejectUnauthorized: false
     }
   },
-      logging: false, // Remove logs desnecessários no terminal
+      logging: false,
     }
 );
 

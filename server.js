@@ -44,7 +44,7 @@ db.sequelize.authenticate()
 });
 
 
-db.sequelize.sync({ force: false })
+db.sequelize.sync({ force: true })
 .then(()=>{
   console.log('/////////////////////////////////////////')
   console.log("Banco de dados sincronizado!");
