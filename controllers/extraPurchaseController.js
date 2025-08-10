@@ -1,6 +1,7 @@
 const {generateId, isNullorEmpty, getUserMoment} = require('../comum/comumFunctions');
 const { ExtraPurchasesUser } = require('../db/config/database'); 
 const moment = require('moment');
+const { Op } = require('sequelize');
 
 const registerExtraPurchase =  async (req, res) => {
     const purchases = req.body  
@@ -31,14 +32,8 @@ const registerExtraPurchase =  async (req, res) => {
                 userId: userMoment
             });
         });
-
-        const list = await ExtraPurchasesUser.findAll({
-            where: { userId: userMoment },
-            attributes: { exclude: ['userId'] },
-            order: [['purchaseDate', 'ASC']]
-        });
         
-        return res.status(200).json({message: 'Despesa(s) registrada(s) com sucesso', listExtraPurchase: list})
+        return res.status(200).json({message: 'Despesa(s) registrada(s) com sucesso'})
      
     }catch (err){
         return res.status(500).json({message: 'Erro interno do servidor', error: err})
@@ -82,21 +77,44 @@ const alterExtraPurchase = async (req, res) =>{
 
 }
 
-const listExtraPurchase = async (req, res) =>{
-    try{
+const listExtraPurchase = async (req, res) => {
+    try {
         const userMoment = getUserMoment(req);   
 
+        // Corrige conversão de formato das datas
+        const dateInitial = req.body.dateInitial 
+            ? moment(req.body.dateInitial, 'DD/MM/YYYY').format('YYYY-MM-DD')
+            : moment().subtract(30, 'days').format('YYYY-MM-DD');
+            
+        const dateFinal = req.body.dateFinal 
+            ? moment(req.body.dateFinal, 'DD/MM/YYYY').format('YYYY-MM-DD')
+            : moment().format('YYYY-MM-DD');
+
         const list = await ExtraPurchasesUser.findAll({
-            where: { userId: userMoment },
+            where: {
+                userId: userMoment,
+                purchaseDate: {
+                    [Op.between]: [dateInitial, dateFinal] // Corrigido: ordem correta
+                }
+            },
             attributes: { exclude: ['userId'] },
             order: [['purchaseDate', 'ASC']]
         });
-        list.forEach(element => {
-            element.purchaseDate =  moment(element.purchaseDate, 'YYYY-MM-DD HH:mm:ss').format('DD/MM/YYYY');
-        });
-        return res.status(200).json({listExtraPurchase: list.length == 0 ? 'Nenhuma compra cadastrada' : list})
-    }catch(err){
-        return res.status(500).json({message: 'Erro interno do servidor', error: err})
+
+        if (list.length === 0) {
+            return res.status(404).json({ message: 'Nenhuma compra encontrada nesse período' });
+        }
+
+        const listFormatted = list.map(item => ({
+            ...item.toJSON(),
+            purchaseDate: moment(item.purchaseDate).format('DD/MM/YYYY')
+        }));
+
+        return res.status(200).json({ listExtraPurchase: listFormatted });
+        
+    } catch(err) {
+        console.error('Erro ao listar compras extras:', err);
+        return res.status(500).json({ message: 'Erro interno do servidor', error: err.message });
     }
 }
 
