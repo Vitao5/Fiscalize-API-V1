@@ -1,7 +1,8 @@
 const {generateId, isNullorEmpty, getUserMoment} = require('../comum/comumFunctions');
-const { ExtraPurchasesUser } = require('../db/config/database'); 
+const { ExtraPurchasesUser, sequelize } = require('../db/config/database'); 
 const moment = require('moment');
 const { Op } = require('sequelize');
+const { limiter } = require('../middleware/middleware');
 
 const registerExtraPurchase =  async (req, res) => {
     const purchases = req.body  
@@ -20,20 +21,20 @@ const registerExtraPurchase =  async (req, res) => {
             isNullorEmpty(element.monthPayment)){
                 return res.status(400).json({message: 'Campos obrigatórios não preenchidos'})
             }
-            //
+
             await ExtraPurchasesUser.create({
                 purchaseName: element.purchaseName,
                 purchaseTypePayment: element.purchaseTypePayment,
                 bankName: element.bankName,
                 purchaseValue: element.purchaseValue,
                 monthPayment: element.monthPayment,
-                purchaseDate:  moment(element.purchaseDate, 'DD/MM/YYYY').format('YYYY-MM-DD'),
+                purchaseDate:  moment.utc(element.purchaseDate).format('YYYY-MM-DD'),
                 id: idPurchase,
                 userId: userMoment
             });
         });
         
-        return res.status(200).json({message: 'Despesa(s) registrada(s) com sucesso'})
+        return res.status(200).json({message: 'Despesa(s) registrada(s) com sucesso', status: 200})
      
     }catch (err){
         return res.status(500).json({message: 'Erro interno do servidor', error: err})
@@ -69,7 +70,7 @@ const alterExtraPurchase = async (req, res) =>{
                     attributes: { exclude: ['userId'] } 
                   });
                   
-                return res.status(200).json({message: 'Informações alteradas com sucesso', listExtraPurchase: list})
+                return res.status(200).json({message: 'Informações alteradas com sucesso'})
         }
     }catch(err){
         return res.status(500).json({message: 'Erro interno do servidor', error: err})
@@ -77,40 +78,42 @@ const alterExtraPurchase = async (req, res) =>{
 
 }
 
+//a função abaixo tras as compras extras, caso não informado data inciio e fim, pega as 
+//compras do mes atual
 const listExtraPurchase = async (req, res) => {
     try {
         const userMoment = getUserMoment(req);   
-
-        // Corrige conversão de formato das datas
-        const dateInitial = req.body.dateInitial 
-            ? moment(req.body.dateInitial, 'DD/MM/YYYY').format('YYYY-MM-DD')
-            : moment().subtract(30, 'days').format('YYYY-MM-DD');
-            
-        const dateFinal = req.body.dateFinal 
-            ? moment(req.body.dateFinal, 'DD/MM/YYYY').format('YYYY-MM-DD')
-            : moment().format('YYYY-MM-DD');
+        const dateInitial = req.body.dateInitial ? moment(req.body.dateInitial, 'DD/MM/YYYY').format('YYYY-MM-DD'): moment().startOf('month').format('YYYY-MM-DD');
+        const dateFinal = req.body.dateFinal ? moment(req.body.dateFinal, 'DD/MM/YYYY').format('YYYY-MM-DD'): moment().format('YYYY-MM-DD');
 
         const list = await ExtraPurchasesUser.findAll({
             where: {
                 userId: userMoment,
-                purchaseDate: {
-                    [Op.between]: [dateInitial, dateFinal] // Corrigido: ordem correta
-                }
+                [Op.and]: [
+                    sequelize.where(sequelize.fn('DATE', sequelize.col('purchaseDate')), '>=', dateInitial),
+                    sequelize.where(sequelize.fn('DATE', sequelize.col('purchaseDate')), '<=', dateFinal)
+                ]
             },
             attributes: { exclude: ['userId'] },
             order: [['purchaseDate', 'ASC']]
         });
 
+
         if (list.length === 0) {
-            return res.status(404).json({ message: 'Nenhuma compra encontrada nesse período' });
+            return res.json({ message: 'Nenhuma compra encontrada nesse período', listFormatted:[] });
         }
 
         const listFormatted = list.map(item => ({
             ...item.toJSON(),
-            purchaseDate: moment(item.purchaseDate).format('DD/MM/YYYY')
+            purchaseDate: moment.utc(item.purchaseDate).format('DD/MM/YYYY')
         }));
-
-        return res.status(200).json({ listExtraPurchase: listFormatted });
+        
+        let valorCompras = 0;
+        listFormatted.forEach(item => {
+            valorCompras += parseFloat(item.purchaseValue);
+        });
+        listFormatted.reverse()
+        return res.json({listFormatted: listFormatted, status: 200, valuePurchases: valorCompras});
         
     } catch(err) {
         console.error('Erro ao listar compras extras:', err);
@@ -120,25 +123,14 @@ const listExtraPurchase = async (req, res) => {
 
 const deleteExtraPurchase = async (req, res)=>{
     try{
-        const deleteItems = req.body
-        const userMoment = getUserMoment(req);   
-        
-        deleteItems.forEach(async (element) => {
-            const item  = await ExtraPurchasesUser.findByPk(element.id)
-            if(!item) return res.status(400).json({message: 'Uma ou mais compras não foram encontradas'})
-            
-            await ExtraPurchasesUser.destroy({
-                where: { id: element.id}
-            });
-        });
+        const userMoment = getUserMoment(req); 
 
         setTimeout(async () => {
-            const list = await ExtraPurchasesUser.findAll({
-                where: { userId: userMoment },
-                attributes: { exclude: ['userId'] } 
-              });
+            await ExtraPurchasesUser.destroy({
+                where: { id: req.body.id, userId: userMoment }
+            });
               
-            return res.status(200).json({message: 'Compra deletada com sucesso',listExtraPurchase: list})
+            return res.status(200).json({message: 'Compra deletada com sucesso'})
         }, 300);
     }catch(err){
         return res.status(500).json({message: 'Erro interno do servidor', error: err})
