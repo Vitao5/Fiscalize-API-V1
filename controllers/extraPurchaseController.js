@@ -56,6 +56,7 @@ const alterExtraPurchase = async (req, res) =>{
             
                 if(exist.length == 0) return res.status(400).json({message: 'Uma ou mais compras não foram encontradas. Verifique as informações!'})
     
+
                 await ExtraPurchasesUser.update({
                     purchaseName: purchaseName,
                     purchaseTypePayment: purchaseTypePayment,
@@ -63,12 +64,13 @@ const alterExtraPurchase = async (req, res) =>{
                     purchaseValue: purchaseValue,
                     monthPayment: monthPayment,
                     purchaseDate: purchaseDate
+                },{
+                    where: {
+                        id: id,
+                        userId: userMoment
+                    }
                 })
                 
-                const list = await ExtraPurchasesUser.findAll({
-                    where: { userId: userMoment },
-                    attributes: { exclude: ['userId'] } 
-                  });
                   
                 return res.status(200).json({message: 'Informações alteradas com sucesso'})
         }
