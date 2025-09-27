@@ -44,40 +44,32 @@ const registerExtraPurchase =  async (req, res) => {
 }
 
 const alterExtraPurchase = async (req, res) =>{
-    const purchasesAlter = req.body  
+    const purchaseAlter = req.body  
     const userMoment = getUserMoment(req);   
+    
+    try {
+        const exist = await ExtraPurchasesUser.findByPk(purchaseAlter.id)
 
-    try{
-        for (const alterItem of purchasesAlter) {
-            const {purchaseName,purchaseDate, purchaseTypePayment,bankName, purchaseValue,monthPayment, id } = alterItem
-    
-    
-                const exist =  await ExtraPurchasesUser.findByPK(id)
-            
-                if(exist.length == 0) return res.status(400).json({message: 'Uma ou mais compras não foram encontradas. Verifique as informações!'})
-    
+        if (!exist) return res.status(400).json({ message: 'Uma compra não foi encontrada. Verifique as informações!' })
 
-                await ExtraPurchasesUser.update({
-                    purchaseName: purchaseName,
-                    purchaseTypePayment: purchaseTypePayment,
-                    bankName: bankName,
-                    purchaseValue: purchaseValue,
-                    monthPayment: monthPayment,
-                    purchaseDate: purchaseDate
-                },{
-                    where: {
-                        id: id,
-                        userId: userMoment
-                    }
-                })
-                
-                  
-                return res.status(200).json({message: 'Informações alteradas com sucesso'})
-        }
-    }catch(err){
-        return res.status(500).json({message: 'Erro interno do servidor', error: err})
+        await ExtraPurchasesUser.update({
+            purchaseName: purchaseAlter.purchaseName,
+            purchaseTypePayment: purchaseAlter.purchaseTypePayment,
+            bankName: purchaseAlter.bankName,
+            purchaseValue: purchaseAlter.purchaseValue,
+            monthPayment: purchaseAlter.monthPayment,
+            purchaseDate: purchaseAlter.purchaseDate
+        }, {
+            where: {
+                id: purchaseAlter.id,
+                userId: userMoment
+            }
+        })
+
+        return res.json({ message: 'Informações alteradas com sucesso', status: 200 })
+    } catch (err) {
+        return res.status(500).json({ message: 'Erro interno do servidor', error: err })
     }
-
 }
 
 //a função abaixo tras as compras extras, caso não informado data inciio e fim, pega as 
@@ -125,6 +117,7 @@ const listExtraPurchase = async (req, res) => {
 
 const deleteExtraPurchase = async (req, res)=>{
     try{
+        console.log(req.body)
         const userMoment = getUserMoment(req); 
 
         setTimeout(async () => {
@@ -132,7 +125,12 @@ const deleteExtraPurchase = async (req, res)=>{
                 where: { id: req.body.id, userId: userMoment }
             });
               
-            return res.status(200).json({message: 'Compra deletada com sucesso'})
+            const saldoDevedor = await ExtraPurchasesUser.findAll({
+                where: { userId: userMoment },
+                attributes: [[sequelize.fn('SUM', sequelize.col('purchaseValue')), 'totalValue']]
+            });
+
+            return res.status(200).json({message: 'Compra deletada com sucesso', totalDevedorMesAtual: saldoDevedor[0].dataValues.totalValue || 0})
         }, 300);
     }catch(err){
         return res.status(500).json({message: 'Erro interno do servidor', error: err})
